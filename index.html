@@ -144,6 +144,9 @@ body.calc-open{padding-bottom:420px}
 .zoomexp{font-size:14px;line-height:1.6;margin:6px 0 0;color:var(--ink)}
 .zoomexp span{display:block;margin-top:4px}
 .zoomhint{font-size:13px;color:var(--muted);text-align:center;margin:4px 0 0}
+.exitbtn{position:absolute;top:0;right:0;font:inherit;font-size:13px;font-weight:700;padding:7px 12px;min-height:36px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer}
+.exitbtn[hidden]{display:none}
+header{position:relative}
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 16px}
 .gate[hidden]{display:none}
 .gate .gcard{width:100%;max-width:420px;background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:20px;margin-top:6vh}
@@ -202,6 +205,7 @@ body.locked{overflow:hidden}
 </div>
 <div class="wrap">
   <header>
+    <button class="exitbtn" id="exitBtn" type="button" hidden>나가기</button>
     <span class="tag">기본간호학 · 수액요법</span>
     <h1>수액 주입 속도</h1>
     <p class="sub">방울 속도를 눈으로 보고, 계산하고, 문제로 확인합니다.</p>
@@ -976,7 +980,7 @@ body.locked{overflow:hidden}
   function post(body){
     return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(function(r){return r.json();});
   }
-  function unlock(){ gate.hidden=true; document.body.classList.remove('locked'); var fc=$('fbCard'); if(fc) fc.hidden=false; }
+  function unlock(){ gate.hidden=true; document.body.classList.remove('locked'); var fc=$('fbCard'); if(fc) fc.hidden=false; var eb=$('exitBtn'); if(eb) eb.hidden=false; }
   function lock(msg){ gate.hidden=false; document.body.classList.add('locked'); $('g-msg').textContent=msg||''; }
   function storedCode(){ try{ return localStorage.getItem('ivcode')||''; }catch(e){ return ''; } }
   function remember(){ try{ sessionStorage.setItem('ivs',JSON.stringify({s:sid,c:code})); localStorage.setItem('ivsid',sid); }catch(e){} }
@@ -993,6 +997,13 @@ body.locked{overflow:hidden}
         sid=''; code=''; $('g-msg').textContent=(r&&r.msg)||'확인하지 못했습니다.';
       }
     }).catch(function(){ $('g-go').disabled=false; sid=''; code=''; $('g-msg').textContent='연결을 확인한 뒤 다시 시도하세요.'; });
+  });
+
+  $('exitBtn').addEventListener('click',function(){
+    if(!window.confirm('나갈까요? 지금 풀던 연습은 사라지고 처음 화면으로 돌아갑니다.')) return;
+    try{ sessionStorage.removeItem('ivs'); localStorage.removeItem('ivsid'); }catch(e){}
+    sid=''; code='';
+    location.reload();
   });
   window.__log=function(t,n){
     if(!sid) return;

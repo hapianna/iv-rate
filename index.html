@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>수액 속도 계산 연습</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Noto+Serif+KR:wght@700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: 한 화면 앱. 탭 3개(속도 보기 → 계산 → 연습). 색감은 의학 저널 도해 톤: 옅은 청회색 바탕, 스틸블루 데이터, 소량의 포인트색. */
+:root{
+  --bg:#eef3f8; --surface:#ffffff; --ink:#1e2d3f; --muted:#5b6d82; --line:#d6e0eb;
+  --accent:#3f6089; --accent-ink:#ffffff; --accent2:#6a65a8;
+  --fluid:#b6cde3; --fluid-edge:#6f93b8; --drop:#4a77a8;
+  --outline:#33485f; --glass-a:.55; --metal:#dbe3ec; --scene:#e3edf6; --scene2:#f8fbff; --rose:#c8405a; --mint:#d6ece9; --mint-edge:#7fb5b3; --mint-slot:#bfdedb; --wheel:#f7f5ee; --wheel-edge:#b9b3a3; --ivory:#f3ecd9; --ivory2:#fbf6e8; --slot:#d8cfb6; --sage:#9ec26b;
+  --good:#4f7f2a; --good-bg:#eaf3dc; --bad:#a6356b; --bad-bg:#f9e7ef; --hint-bg:#f1e9f7; --hint:#6a3f82;
+  --font:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --serif:"Noto Serif KR","Nanum Myeongjo",Georgia,serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1824; --surface:#162434; --ink:#e4edf7; --muted:#92a5ba; --line:#28394d;
+    --accent:#8db0d9; --accent-ink:#0e1824; --accent2:#a9a4e0;
+    --fluid:#46709a; --fluid-edge:#8fb4dc; --drop:#9cc3ea;
+    --outline:#9db4cc; --glass-a:.07; --metal:#3a4d63; --scene:#0f1f30; --scene2:#1a3048; --rose:#ef7d93; --mint:#3d6a68; --mint-edge:#7fc3bf; --mint-slot:#274746; --wheel:#e6e2d3; --wheel-edge:#8d8a7e; --ivory:#e3dcc6; --ivory2:#f0e9d4; --slot:#2b2a24; --sage:#86a95a;
+    --good:#9fd070; --good-bg:#1f2e14; --bad:#f08fb8; --bad-bg:#3a1b2b; --hint-bg:#2e2540; --hint:#d2b5ee;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1824; --surface:#162434; --ink:#e4edf7; --muted:#92a5ba; --line:#28394d;
+    --accent:#8db0d9; --accent-ink:#0e1824; --accent2:#a9a4e0;
+    --fluid:#46709a; --fluid-edge:#8fb4dc; --drop:#9cc3ea;
+    --outline:#9db4cc; --glass-a:.07; --metal:#3a4d63; --scene:#0f1f30; --scene2:#1a3048; --rose:#ef7d93; --mint:#3d6a68; --mint-edge:#7fc3bf; --mint-slot:#274746; --wheel:#e6e2d3; --wheel-edge:#8d8a7e; --ivory:#e3dcc6; --ivory2:#f0e9d4; --slot:#2b2a24; --sage:#86a95a;
+    --good:#9fd070; --good-bg:#1f2e14; --bad:#f08fb8; --bad-bg:#3a1b2b; --hint-bg:#2e2540; --hint:#d2b5ee;
+    color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.55;font-size:16px;-webkit-text-size-adjust:100%}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:16px}
+.wrap>*{min-width:0}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+h1{font-family:var(--serif);font-size:23px;line-height:1.25;margin:0;font-weight:800;text-wrap:balance}
+h2{font-size:16px;margin:0 0 10px;font-weight:700}
+.sub{margin:4px 0 0;color:var(--muted);font-size:14px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--line);padding:4px;border-radius:12px}
+.tab{font:inherit;font-weight:700;font-size:15px;border:0;background:transparent;color:var(--muted);padding:10px 4px;border-radius:9px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.formula{background:var(--bg);border-radius:10px;padding:10px 12px;font-size:14px;display:flex;flex-direction:column;gap:2px}
+.formula b{font-weight:700}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.fields .full{grid-column:1/-1}
+label{display:block;font-size:13px;color:var(--muted);font-weight:500;margin-bottom:4px}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.inp{display:flex;align-items:center;gap:6px}
+input,select{font:inherit;width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);min-height:44px;font-variant-numeric:tabular-nums}
+.unit{font-size:14px;color:var(--muted);white-space:nowrap}
+.timepair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.chip{font:inherit;font-weight:700;font-size:17px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;min-height:48px;padding:4px 2px;cursor:pointer;font-variant-numeric:tabular-nums}
+.chip small{display:block;font-size:11px;font-weight:500;color:var(--muted);line-height:1.1}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"] small{color:inherit;opacity:.85}
+.speedline{margin:14px 0 4px;font-size:18px;text-align:center}
+.speedline b{font-size:26px;font-weight:800}
+.stage{display:grid;grid-template-columns:170px minmax(0,1fr);gap:12px;align-items:center;margin-top:8px}
+.stage svg{width:100%;height:auto;display:block}
+.scene{background:linear-gradient(180deg,var(--scene2),var(--scene));border:1px solid var(--line);border-radius:12px;padding:8px 6px}
+.tiles{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.tile{background:var(--bg);border-radius:10px;padding:10px 12px}
+.tile .k{font-size:12px;color:var(--muted)}
+.tile .v{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15}
+.tile .v small{font-size:13px;font-weight:500;color:var(--muted);margin-left:3px}
+.tile.main{background:var(--accent);color:var(--accent-ink)}
+.tile.main .k,.tile.main .v small{color:inherit;opacity:.85}
+
+.fab{position:fixed;right:14px;bottom:14px;z-index:20;border:0;border-radius:999px;padding:0 18px;min-height:48px;font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);box-shadow:0 3px 10px rgba(0,0,0,.25);cursor:pointer}
+.calc{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:440px;z-index:30;background:var(--surface);border:1.5px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0;padding:12px 12px 16px;box-shadow:0 -4px 16px rgba(0,0,0,.2)}
+.calc[hidden],.fab[hidden]{display:none}
+.chead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:700;font-size:14px}
+.cdisp{background:var(--bg);border-radius:10px;padding:8px 12px;text-align:right;min-height:64px;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.cexp{font-size:15px;color:var(--muted);word-break:break-all;min-height:20px}
+.cres{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;word-break:break-all}
+.ckeys{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.ckeys button{font:inherit;font-size:20px;font-weight:600;min-height:46px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer}
+.ckeys button.op{background:var(--bg)}
+.ckeys button.eq{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.ckeys button.put{grid-column:span 2;font-size:15px;background:var(--accent2);color:#fff;border-color:var(--accent2)}
+body.calc-open{padding-bottom:420px}
+.sc-box{background:var(--bg);border-radius:10px;padding:12px;margin-top:12px;display:flex;flex-direction:column;gap:8px;font-size:15px}
+.sc-box .big{font-size:18px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
+.sc-box .why{margin:0;font-size:14px;color:var(--muted)}
+.sc-tbl{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px;font-variant-numeric:tabular-nums}
+.sc-tbl th,.sc-tbl td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:center}
+.sc-tbl th{color:var(--muted);font-weight:600;font-size:12px}
+.sc-tbl tr.on td{background:var(--good-bg);font-weight:700}
+.fb.sum{background:var(--bg);border-left:5px solid var(--accent)}
+.fb.sum table{width:100%;border-collapse:collapse;margin:8px 0;font-size:14px}
+.fb.sum td,.fb.sum th{border-bottom:1px solid var(--line);padding:5px 4px;text-align:left}
+.fb.sum th{color:var(--muted);font-weight:600;font-size:12px}
+.ta{width:100%;font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);resize:vertical;min-height:96px}
+.fld{width:100%;font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);margin-bottom:8px}
+.tiles2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.story{font-size:17px;margin:0 0 4px;text-wrap:pretty}
+.story b{font-weight:800}
+.gsteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.gstep{border:1.5px solid var(--line);border-radius:12px;padding:12px;display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px}
+.gstep .num{width:26px;height:26px;border-radius:50%;background:var(--line);color:var(--muted);font-weight:700;font-size:13px;display:grid;place-items:center}
+.gstep[data-s="active"]{border-color:var(--accent)}
+.gstep[data-s="active"] .num{background:var(--accent);color:var(--accent-ink)}
+.gstep[data-s="done"]{border-color:var(--good);background:var(--good-bg)}
+.gstep[data-s="done"] .num{background:var(--good);color:var(--bg)}
+.gstep[data-s="locked"]{opacity:.55}
+.gq{margin:0 0 8px;font-size:15px;text-wrap:pretty}
+.gq b{font-weight:700}
+.grow{display:flex;gap:8px;align-items:center}
+.grow .inp{flex:1}
+.gsol{margin:0;font-size:14px;font-variant-numeric:tabular-nums}
+.gfb{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.gfb .hint{background:var(--hint-bg);border-radius:8px;padding:8px 10px;font-size:14px}
+.gbtns{display:flex;gap:14px}
+.linkbtn{background:none;border:0;color:var(--accent);font:inherit;font-size:13px;font-weight:700;padding:8px 0;cursor:pointer;text-decoration:underline}
+.unitline{font-size:16px;margin:14px 0 4px;text-align:center;font-variant-numeric:tabular-nums}
+.unitline s{color:var(--bad);text-decoration-thickness:2px}
+.recap{margin:10px 0 0;padding-left:18px;font-size:14px;color:var(--muted)}
+.recap li{margin-bottom:2px}
+
+#clamp{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.zoomwrap{position:fixed;inset:0;z-index:60;background:rgba(30,45,63,.45);display:flex;align-items:center;justify-content:center;padding:12px;opacity:0;pointer-events:none;transition:opacity .22s}
+.zoomwrap.on{opacity:1;pointer-events:auto}
+.zoomcard{background:var(--surface);border-radius:16px;width:100%;max-width:420px;max-height:96vh;overflow:auto;padding:12px 14px 14px;transform:scale(.4);transform-origin:var(--zx,50%) var(--zy,60%);transition:transform .26s cubic-bezier(.2,.8,.2,1)}
+.zoomwrap.on .zoomcard{transform:none}
+.zoomhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.zoomhead h3{margin:0;font-size:16px}
+.zoomsvg{width:100%;height:auto;display:block;background:linear-gradient(180deg,var(--scene2),var(--scene));border:1px solid var(--line);border-radius:12px;touch-action:none;user-select:none;-webkit-user-select:none}
+.zoomread{margin:8px 0 2px;font-size:15px;text-align:center}
+.zoomread b{font-variant-numeric:tabular-nums}
+.zoomexp{font-size:14px;line-height:1.6;margin:6px 0 0;color:var(--ink)}
+.zoomexp span{display:block;margin-top:4px}
+.zoomhint{font-size:13px;color:var(--muted);text-align:center;margin:4px 0 0}
+.gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 16px}
+.gate[hidden]{display:none}
+.gate .gcard{width:100%;max-width:420px;background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:20px;margin-top:6vh}
+.gate h1{font-size:22px;margin:0 0 4px}
+.gate label{display:block;font-size:14px;font-weight:600;margin:14px 0 4px}
+.gate input{width:100%;font:inherit;font-size:18px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.gate .gmsg{color:var(--bad);font-size:14px;margin:10px 0 0;min-height:20px}
+.gate .gnote{font-size:12.5px;color:var(--muted);margin-top:14px;line-height:1.6}
+body.locked{overflow:hidden}
+.mini{font-size:13px;color:var(--muted);margin:10px 0 0}
+.mini b{color:var(--ink);font-variant-numeric:tabular-nums}
+.ctrl{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;min-height:44px;cursor:pointer;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:default}
+.steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:26px 1fr;gap:8px;font-size:15px}
+.steps li::before{content:counter(s);background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;margin-top:2px}
+.steps .eq{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px;display:block}
+.err{color:var(--bad);font-size:14px;margin:8px 0 0}
+.tag{display:inline-block;font-size:12px;font-weight:700;color:var(--accent2);border:1.5px solid var(--accent2);border-radius:99px;padding:1px 10px;margin-bottom:8px}
+.q{font-size:17px;font-weight:500;margin:0 0 12px;text-wrap:pretty}
+.q b{font-weight:800}
+.row{display:flex;gap:8px}
+.row .inp{flex:1}
+.fb{margin-top:12px;border-radius:12px;padding:12px 14px;font-size:15px}
+.fb.ok{background:var(--good-bg);color:var(--ink);border-left:5px solid var(--good)}
+.fb.no{background:var(--bad-bg);color:var(--ink);border-left:5px solid var(--bad)}
+.fb h3{margin:0 0 6px;font-size:15px}
+.fb .hint{margin-top:8px;background:var(--hint-bg);color:var(--ink);border-radius:8px;padding:8px 10px;font-size:14px}
+.fb .hint b{color:var(--hint)}
+.fb ol{margin:6px 0 0;padding-left:20px}
+.score{display:flex;gap:16px;font-size:14px;color:var(--muted);margin-bottom:12px;font-variant-numeric:tabular-nums}
+.score b{color:var(--ink)}
+.note{font-size:13px;color:var(--muted)}
+[hidden]{display:none!important}
+@media (max-width:380px){.stage{grid-template-columns:1fr}.stage svg{max-width:170px;margin:0 auto}}
+</style>
+</head>
+<body class="locked">
+<div class="gate" id="gate" hidden>
+  <form class="gcard" id="gform" autocomplete="off">
+    <span class="tag">기본간호학 · 수액요법</span>
+    <h1>수액 주입 속도</h1>
+    <p class="note" style="margin:0">수강생 확인을 위해 학번을 입력하세요.</p>
+    <label for="g-sid">학번</label>
+    <input id="g-sid" inputmode="numeric" autocomplete="off" maxlength="20">
+    <div id="g-coderow">
+      <label for="g-code">수업 코드</label>
+      <input id="g-code" type="password" autocomplete="off" maxlength="40">
+    </div>
+    <p class="gmsg" id="g-msg" role="alert"></p>
+    <button class="btn" id="g-go" type="submit" style="width:100%">입장</button>
+    <p class="gnote">수업 참여 확인을 위해 학번과 접속·연습 횟수만 기록되며, 풀이 내용은 저장되지 않습니다. 이름, 생년월일 등은 수집하지 않습니다.<br><br>© 이정, 목포가톨릭대학교 간호학과. 이 앱은 해당 교과목 수강생의 학습을 위한 것입니다. 수업 목적 외 사용·복제·배포는 저작자의 사전 허락이 필요합니다.</p>
+  </form>
+</div>
+<div class="wrap">
+  <header>
+    <span class="tag">기본간호학 · 수액요법</span>
+    <h1>수액 주입 속도</h1>
+    <p class="sub">방울 속도를 눈으로 보고, 계산하고, 문제로 확인합니다.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="학습 단계">
+    <button class="tab" role="tab" id="t-view" aria-selected="true" aria-controls="p-view">1. 속도 보기</button>
+    <button class="tab" role="tab" id="t-calc" aria-selected="false" aria-controls="p-calc">2. 계산</button>
+    <button class="tab" role="tab" id="t-quiz" aria-selected="false" aria-controls="p-quiz">3. 연습</button>
+  </div>
+
+  <!-- 1. 속도 보기 -->
+  <section id="p-view" role="tabpanel" aria-labelledby="t-view" class="col">
+    <div class="card">
+      <h2>분당 방울 수를 고르세요</h2>
+      <div class="chips" role="group" aria-label="점적 속도 선택">
+        <button class="chip" type="button" data-g="0" aria-pressed="false">0<small>잠금</small></button>
+        <button class="chip" type="button" data-g="10" aria-pressed="false">10<small>gtt/min</small></button>
+        <button class="chip" type="button" data-g="20" aria-pressed="true">20<small>gtt/min</small></button>
+        <button class="chip" type="button" data-g="30" aria-pressed="false">30<small>gtt/min</small></button>
+        <button class="chip" type="button" data-g="60" aria-pressed="false">60<small>gtt/min</small></button>
+      </div>
+      <p class="speedline" id="speedline"></p>
+      <p class="note" id="fromCalc" style="text-align:center;margin:0 0 4px" hidden>계산 탭에서 가져온 속도입니다.</p>
+
+      <div class="stage">
+        <div class="scene">
+          <svg viewBox="0 0 170 330" role="img" aria-label="수액 백, 점적통, 롤러 조절기" stroke-linejoin="round" stroke-linecap="round">
+            <defs><clipPath id="chamberClip"><path d="M70 78 H100 V176 Q100 184 92 189 L89 194 H81 L78 189 Q70 184 70 176 Z"/></clipPath></defs>
+            <path d="M26 0 V16 Q26 38 52 38 H118 Q144 38 144 16 V0" fill="var(--fluid)" fill-opacity=".35" stroke="var(--outline)" stroke-width="1.5"/>
+            <rect x="49" y="38" width="12" height="14" rx="2" fill="#ffffff" fill-opacity="var(--glass-a)" stroke="var(--outline)" stroke-width="1.2"/>
+            <rect x="46" y="50" width="18" height="8" rx="3" fill="var(--sage)" stroke="var(--outline)" stroke-width="1.2"/>
+            <rect x="77" y="38" width="16" height="14" rx="2" fill="#ffffff" fill-opacity="var(--glass-a)" stroke="var(--outline)" stroke-width="1.2"/>
+            <rect x="73" y="48" width="24" height="8" rx="3" fill="var(--sage)" stroke="var(--outline)" stroke-width="1.2"/>
+            <path d="M78 56 H92 L93 62 L102 72 H68 L77 62 Z" fill="var(--ivory)" stroke="var(--outline)" stroke-width="1.4"/>
+            <rect x="66" y="72" width="38" height="6" rx="2" fill="var(--ivory)" stroke="var(--outline)" stroke-width="1.4"/>
+            <path d="M70 78 H100 V176 Q100 184 92 189 L89 194 H81 L78 189 Q70 184 70 176 Z" fill="#ffffff" fill-opacity="var(--glass-a)" stroke="var(--outline)" stroke-width="1.8"/>
+            <g clip-path="url(#chamberClip)">
+              <rect x="66" y="152" width="40" height="50" fill="var(--fluid)"/>
+              <path d="M66 152 Q85 157 104 152" fill="none" stroke="var(--fluid-edge)" stroke-width="2"/>
+            </g>
+            <rect x="82" y="78" width="6" height="13" rx="1" fill="var(--ivory)" stroke="var(--outline)" stroke-width="1.1"/>
+            <path d="M75 86 V170" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.65"/>
+            <path d="M96 92 V148" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.35"/>
+            <ellipse id="ripple" cx="85" cy="152" rx="0" ry="0" fill="none" stroke="var(--fluid-edge)" stroke-width="1.6"/>
+            <circle id="drop" cx="85" cy="98" r="0" fill="var(--drop)"/>
+            <g id="tubeTop"><line x1="85" y1="192" x2="85" y2="214" stroke="var(--outline)" stroke-width="6.5"/><line x1="85" y1="192" x2="85" y2="214" stroke="var(--fluid)" stroke-width="3.5"/></g>
+            <g id="tubeEnd"><line x1="85" y1="290" x2="85" y2="330" stroke="var(--outline)" stroke-width="6.5"/><line x1="85" y1="290" x2="85" y2="330" stroke="var(--fluid)" stroke-width="3.5"/></g>
+            <g id="clamp" role="button" aria-label="롤러 클램프 확대해서 원리 보기" tabindex="0">
+              <rect x="72" y="200" width="46" height="96" fill="transparent"/>
+              <path d="M79.25 212 H103.6 L90.45 290 H79.25 Z" fill="var(--mint)" stroke="var(--mint-edge)" stroke-width="1.6"/>
+              <rect x="76.5" y="206" width="30" height="7" rx="1.8" fill="var(--mint)" stroke="var(--mint-edge)" stroke-width="1.4"/>
+              <rect x="77.5" y="288" width="13" height="4" rx="1.2" fill="var(--mint)" stroke="var(--mint-edge)" stroke-width="1.2"/>
+              <path d="M83.25 218 H100.6 L91.5 272 H83.25 Z" fill="var(--mint-slot)" stroke="var(--mint-edge)" stroke-width="0.8"/>
+              <path id="tubeFlow" d="M83.25 218 H86.75 V250 L84 257 L86.75 264 V272 H83.25 Z" fill="var(--fluid)"/>
+              <rect id="tubeDry" x="83.25" y="264" width="3.5" height="8" fill="var(--mint-slot)" opacity="0"/>
+              <g id="wheel" transform="translate(93.85,258)">
+                <circle r="10" fill="var(--wheel)" stroke="var(--wheel-edge)" stroke-width="1.4"/>
+                <g id="ticks"></g>
+                <circle r="4.2" fill="var(--wheel)" stroke="var(--wheel-edge)" stroke-width="1"/>
+                <line x1="0" y1="-4.4" x2="0" y2="-8.4" stroke="var(--accent)" stroke-width="2.6"/>
+              </g>
+              <g id="rotArrow" opacity="0" transform="translate(93.85,258)">
+                <path d="M4.5 -13 A14 14 0 0 1 13 4.5 M13 4.5 L9.8 3.1 M13 4.5 L14 0.9" fill="none" stroke="var(--outline)" stroke-width="1.4"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+        <div>
+          <div class="tiles">
+            <div class="tile main"><div class="k">분당 방울 수</div><div class="v" id="v-gtt">-</div></div>
+            <div class="tile main"><div class="k">시간당 주입량</div><div class="v" id="v-mlhr">-</div></div>
+          </div>
+        </div>
+      </div>
+      <p class="mini">방울 간격 <b id="o-int">-</b> · 10초에 <b id="o-ten">-</b>방울</p>
+      <p class="mini">👆 <b>조절기</b>를 터치하면 확대해서 원리를 볼 수 있어요.</p>
+
+      <div style="margin-top:12px">
+        <p class="note" style="margin:0">점적계수 20 gtt/mL (일반 세트)를 기준으로 시간당 주입량을 계산합니다.</p>
+        <input type="hidden" id="vdf" value="20">
+      </div>
+
+      <div class="ctrl">
+        <button class="btn ghost" id="pause" type="button">일시정지</button>
+        <button class="btn ghost" id="snd" type="button">소리 켜기</button>
+        <span class="note">방울 <b id="cnt">0</b>개 · <b id="sec">0</b>초</span>
+      </div>
+      <p class="note" style="margin-top:12px">속도(gtt/min)가 바뀌면 방울이 떨어지는 간격이 바뀝니다. 속도를 고르면 조절기 안의 롤러(바퀴)가 굴러서 튜브를 조이거나 풀어 줍니다. 0(잠금)은 튜브를 완전히 조인 상태입니다.</p>
+    </div>
+  </section>
+
+  <!-- 2. 계산 -->
+  <section id="p-calc" role="tabpanel" aria-labelledby="t-calc" class="col" hidden>
+    <div class="card">
+      <h2>문제 상황</h2>
+      <p class="story" id="story"></p>
+      <div class="fields">
+        <div class="full">
+          <label for="vol">총 주입량</label>
+          <div class="inp"><input id="vol" type="number" inputmode="decimal" min="0" step="any" value="1000"><span class="unit">mL</span></div>
+        </div>
+        <div class="full">
+          <label>총 주입시간</label>
+          <div class="timepair">
+            <div class="inp"><input id="hr" type="number" inputmode="decimal" min="0" step="any" value="10" aria-label="시간"><span class="unit">시간</span></div>
+            <div class="inp"><input id="min" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="분"><span class="unit">분</span></div>
+          </div>
+        </div>
+        <div class="full">
+          <label>점적계수 drop factor</label>
+          <p class="note" style="margin:0;font-size:15px;color:var(--ink)"><b>20 gtt/mL</b> (일반 세트: 1 mL가 20방울)</p>
+          <input type="hidden" id="df" value="20">
+        </div>
+      </div>
+      <p class="err" id="err" hidden></p>
+      <div class="ctrl"><button class="btn ghost" id="shuffle" type="button">다른 예시로 해보기</button></div>
+    </div>
+
+    <div class="card">
+      <h2>단계별로 풀어 보기</h2>
+      <p class="note" style="margin:0 0 12px">한 단계씩 직접 계산해서 입력하세요. 맞히면 다음 단계가 열립니다.</p>
+      <ol class="gsteps" id="gsteps"></ol>
+    </div>
+
+    <div class="card" id="scCard">
+      <h2>빠른 계산법: ÷3 공식</h2>
+      <p class="note" style="margin:0 0 10px">점적계수 20 gtt/mL에서는 mL/hr를 3으로 나누면 분당 방울 수가 됩니다. 왜 그런지 확인해 보세요.</p>
+      <div class="sc-box" id="scBox"></div>
+    </div>
+
+    <div class="card" id="resultCard" hidden>
+      <h2>결과</h2>
+      <div class="tiles2">
+        <div class="tile main"><div class="k">시간당 주입량</div><div class="v" id="c-mlhr">-</div></div>
+        <div class="tile main"><div class="k">분당 방울 수</div><div class="v" id="c-gtt">-</div></div>
+      </div>
+      <p class="unitline" id="unitline"></p>
+      <p class="story" id="secline" style="text-align:center;margin-top:8px"></p>
+      <p class="note" style="text-align:center;margin:0">mL와 hr가 약분되어 gtt/min만 남습니다.</p>
+      <div class="ctrl"><button class="btn" id="toView" type="button">이 속도로 방울 보기</button></div>
+    </div>
+
+    <div class="card">
+      <h2>정리</h2>
+      <ol class="recap" style="color:var(--ink)">
+        <li>1시간에 몇 mL? 총 주입량 ÷ 총 주입시간(hr)</li>
+        <li>1시간에 몇 방울? × 점적계수(drop factor)</li>
+        <li>1분에 몇 방울? ÷ 60</li>
+        <li>몇 초에 1방울? 60초 ÷ 분당 방울 수</li>
+      </ol>
+      <p class="note" style="margin-top:12px"><b>한 줄로 쓰면 (교재 식)</b><br>시간당 주입량(mL/hr) = 총 주입량 ÷ 총 주입시간<br>분당 방울 수(gtt/min) = 총 주입량(mL) × drop factor(gtt/mL) ÷ 총 주입시간(분)</p>
+      <p class="note" style="margin-top:8px"><b>검산 요령</b>: 점적계수 20 gtt/mL에서는 분당 방울 수 = mL/hr ÷ 3 입니다. (예: 120 mL/hr → 40 gtt/min)</p>
+      <p class="note" style="margin-top:12px">이 앱은 점적계수 20 gtt/mL(일반 세트)로 계산합니다. 실제 세트는 제품마다 다르므로 표시된 값을 확인하세요. 교육용 도구이며 실제 주입은 처방과 기관 지침을 따릅니다.</p>
+    </div>
+  </section>
+
+  <!-- 3. 연습 -->
+  <section id="p-quiz" role="tabpanel" aria-labelledby="t-quiz" hidden>
+    <div class="card">
+      <div class="score"><span>정답 <b id="s-ok">0</b> / <b id="s-all">0</b> <small style="color:var(--muted)">처음 답 기준</small></span><span>연속 정답 <b id="s-st">0</b></span></div>
+      <span class="tag" id="q-tag">유형</span>
+      <p class="q" id="q-text"></p>
+      <form id="q-form" class="row" autocomplete="off">
+        <div class="inp"><input id="q-ans" type="number" inputmode="decimal" min="0" step="any" aria-label="답"><span class="unit" id="q-unit"></span></div>
+        <button class="btn" type="submit" id="q-check">확인</button>
+      </form>
+      <div id="q-fb" aria-live="polite"></div>
+      <div class="ctrl" style="justify-content:flex-end">
+        <button class="btn ghost" id="q-next" type="button">다음 문제</button>
+      </div>
+    </div>
+  
+    <div class="card" id="fbCard" hidden>
+      <h2>사용자 평가</h2>
+      <p class="note" style="margin:0 0 10px">앱 수정사항, 사용하기 편한 점·불편한 점, 문제나 설명에 대한 생각 등 자유롭게 써 주세요. 평가는 학번과 연결해 저장하지 않습니다.</p>
+      <select class="fld" id="fb-cat" aria-label="분류">
+        <option>사용 편의성</option>
+        <option>앱 수정 제안</option>
+        <option>문제·해설</option>
+        <option>기타</option>
+      </select>
+      <textarea class="ta" id="fb-text" maxlength="500" rows="4" aria-label="사용자 평가"></textarea>
+      <div class="ctrl"><button class="btn" id="fb-send" type="button">보내기</button><span class="note" id="fb-msg" role="status"></span></div>
+    </div>
+  </section>
+</div>
+
+  <p class="note" style="text-align:center;margin:20px 8px 80px;line-height:1.6">© 이정, 목포가톨릭대학교 간호학과.<br>이 앱은 해당 교과목 수강생의 학습을 위한 것입니다. 수업 목적 외 사용·복제·배포는 저작자의 사전 허락이 필요합니다.</p>
+  <button class="fab" id="fab" type="button" hidden>계산기</button>
+  <div class="calc" id="calc" role="dialog" aria-label="계산기" hidden>
+    <div class="chead"><span>계산기</span><button class="btn ghost" id="cclose" type="button" style="min-height:36px;padding:4px 12px">닫기</button></div>
+    <div class="cdisp"><div class="cexp" id="cexp"></div><div class="cres" id="cres">0</div></div>
+    <div class="ckeys" id="ckeys"></div>
+  </div>
+
+<div class="zoomwrap" id="zoomwrap" aria-hidden="true">
+  <div class="zoomcard" role="dialog" aria-label="롤러 클램프 원리">
+    <div class="zoomhead"><h3>롤러 클램프의 원리</h3><button class="btn ghost" id="zoomBack" type="button">돌아가기</button></div>
+    <svg class="zoomsvg" id="zsvg" viewBox="50 204 100 92" role="img" aria-label="롤러 클램프 단면">
+      <path d="M79.25 212 H103.6 L90.45 290 H79.25 Z" fill="var(--mint)" stroke="var(--mint-edge)" stroke-width="1.6"/>
+      <rect x="76.5" y="206" width="30" height="7" rx="1.8" fill="var(--mint)" stroke="var(--mint-edge)" stroke-width="1.4"/>
+      <rect x="77.5" y="288" width="13" height="4" rx="1.2" fill="var(--mint)" stroke="var(--mint-edge)" stroke-width="1.2"/>
+      <path d="M83.25 218 H100.6 L91.5 272 H83.25 Z" fill="var(--mint-slot)" stroke="var(--mint-edge)" stroke-width="0.8"/>
+      <path id="zFlow" d="M83.25 218 H86.75 V250 L84 257 L86.75 264 V272 H83.25 Z" fill="var(--fluid)"/>
+      <g id="zWheel" transform="translate(93.85,258)">
+        <circle r="10" fill="var(--wheel)" stroke="var(--wheel-edge)" stroke-width="1.4"/>
+        <g id="zTicks"></g>
+        <circle r="4.2" fill="var(--wheel)" stroke="var(--wheel-edge)" stroke-width="1"/>
+        <line x1="0" y1="-4.4" x2="0" y2="-8.4" stroke="var(--accent)" stroke-width="2.6"/>
+      </g>
+      <g id="zGrab" style="cursor:grab"><circle id="zGrabC" r="14" cx="93.85" cy="258" fill="transparent"/></g>
+      <g font-size="3.6" fill="var(--ink)" stroke="none" font-family="var(--font)">
+        <line x1="121" y1="214" x2="121" y2="214" stroke="var(--outline)" stroke-width=".5"/>
+        <text x="122" y="226" font-weight="700">롤러 휠</text>
+        <line id="zL1" x1="121" y1="225" x2="106" y2="250" stroke="var(--outline)" stroke-width=".5"/>
+        <text x="122" y="282" font-weight="700">경사면</text>
+        <line x1="121" y1="281" x2="95" y2="270" stroke="var(--outline)" stroke-width=".5"/>
+        <text x="75" y="226" text-anchor="end" font-weight="700">수액관</text>
+        <line x1="76" y1="225" x2="84.5" y2="228" stroke="var(--outline)" stroke-width=".5"/>
+        <text x="75" y="270" text-anchor="end" font-weight="700" fill="var(--rose)">눌리는 곳</text>
+        <line id="zL2" x1="76" y1="268" x2="85" y2="258" stroke="var(--rose)" stroke-width=".5"/>
+      </g>
+      <g id="zHint" font-size="3.4" fill="var(--accent)" font-family="var(--font)" font-weight="700"><text x="122" y="248">↕ 끌어보세요</text></g>
+    </svg>
+    <p class="zoomread" id="zRead"></p>
+    <div class="zoomexp">
+      <span>롤러 클램프는 <b>수액관(튜브)을 바퀴로 눌러서</b> 흐르는 길을 좁히고 넓히는 조절기예요.</span>
+      <span>⬇ 롤러를 <b>아래로</b> 내리면 틈이 좁아져 튜브가 더 눌립니다 → 수액이 적게 흐르고 방울이 천천히 떨어져요.</span>
+      <span>⬆ 롤러를 <b>위로</b> 올리면 틈이 넓어져 수액이 많이 흐르고 방울이 빨리 떨어져요.</span>
+    </div>
+    <p class="zoomhint">바퀴를 손가락으로 위아래로 끌어 속도를 바꿔 보세요. 바깥을 터치해도 돌아갑니다.</p>
+  </div>
+</div>
+<script>
+(function(){
+  var $ = function(id){return document.getElementById(id)};
+  function fmt(n,d){ if(d===undefined) d=1; return Number(n.toFixed(d)).toLocaleString('ko-KR',{maximumFractionDigits:d}); }
+
+  /* ---------- 탭 ---------- */
+  var names = ['view','calc','quiz'];
+  var viewOn = true, current = null;
+  function show(name){
+    names.forEach(function(k){
+      var on = k===name;
+      $('t-'+k).setAttribute('aria-selected', on);
+      $('p-'+k).hidden = !on;
+    });
+    viewOn = name==='view';
+    if(viewOn){ t=0; lastN=0; }
+    if(name==='quiz' && !current) newQ();
+    syncCalcUi(name);
+  }
+  names.forEach(function(k){ $('t-'+k).onclick=function(){show(k)}; });
+
+  /* ---------- 1. 속도 보기 ---------- */
+  var period = 3, t = 0, last = null, running = true, lastN = 0, gSel = 20, customMl = null;
+  var drop = $('drop'), ripple = $('ripple');
+  var ac = null, sndOn = false;
+  var locked = false, wheelY = 250, Y_OPEN = 232, Y_LOCK = 258;
+  var rateKnots = [[0,258],[10,254],[20,250],[30,246],[60,240],[120,232]];
+  function rateYFor(g){
+    if(g<=0) return 258;
+    for(var i=1;i<rateKnots.length;i++){
+      if(g<=rateKnots[i][0]){ var a=rateKnots[i-1], b=rateKnots[i]; return a[1]+(b[1]-a[1])*(g-a[0])/(b[0]-a[0]); }
+    }
+    return 232;
+  }
+  var wheelEl = $('wheel'), flowEl = $('tubeFlow'), dryEl = $('tubeDry'), arrEl = $('rotArrow'), tubeEnd = $('tubeEnd');
+  (function(){
+    var g = $('ticks'), NS='http://www.w3.org/2000/svg';
+    for(var i=0;i<16;i++){
+      var a=i*22.5*Math.PI/180, ln=document.createElementNS(NS,'line');
+      ln.setAttribute('x1',(7.4*Math.sin(a)).toFixed(2)); ln.setAttribute('y1',(-7.4*Math.cos(a)).toFixed(2));
+      ln.setAttribute('x2',(10*Math.sin(a)).toFixed(2)); ln.setAttribute('y2',(-10*Math.cos(a)).toFixed(2));
+      ln.setAttribute('stroke','var(--wheel-edge)'); ln.setAttribute('stroke-width','1.1');
+      g.appendChild(ln);
+    }
+  })();
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ running=false; $('pause').textContent='재생'; }
+
+  function tick(){
+    if(!ac) return;
+    try{
+      var o=ac.createOscillator(), g=ac.createGain();
+      o.frequency.value=880;
+      g.gain.setValueAtTime(0.15, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.06);
+      o.connect(g); g.connect(ac.destination);
+      o.start(); o.stop(ac.currentTime+0.07);
+    }catch(e){}
+  }
+  $('snd').onclick=function(){
+    if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ ac=null; } }
+    if(ac && ac.resume) ac.resume();
+    sndOn=!sndOn;
+    this.textContent = sndOn ? '소리 끄기' : '소리 켜기';
+  };
+  $('pause').onclick=function(){
+    running=!running;
+    this.textContent = running ? '일시정지' : '재생';
+  };
+
+  function frame(now){
+    if(last===null) last=now;
+    var dt=(now-last)/1000; last=now;
+    if(running && viewOn && !locked) t+=Math.min(dt,0.25);
+    /* 낙하 시간은 중력으로 일정(FALL). 속도에 따라 달라지는 것은 방울이 맺혀 매달려 있는 시간(formT)뿐이다. */
+    var n=Math.floor(t/period), tau=t-n*period;
+    var FALL=Math.min(0.35, period*0.7), formT=period-FALL;
+    var r,y;
+    if(tau<formT){ r=1+(tau/formT)*4.5; y=91+r; }
+    else { var s=(tau-formT)/FALL; r=5.5; y=96.5+s*s*50; }
+    drop.setAttribute('r', r.toFixed(2));
+    drop.setAttribute('cy', y.toFixed(2));
+    var RIP=Math.min(0.45, period);
+    if(n>0 && tau<RIP){
+      var k=tau/RIP;
+      ripple.setAttribute('rx',(4+k*10).toFixed(1)); ripple.setAttribute('ry',(1+k*2.5).toFixed(1)); ripple.setAttribute('opacity',(1-k).toFixed(2));
+    } else { ripple.setAttribute('rx',0); ripple.setAttribute('ry',0); }
+    if(locked){ drop.setAttribute('r',0); ripple.setAttribute('rx',0); ripple.setAttribute('ry',0); }
+    /* 조절기 바퀴: 오른쪽 경사면을 따라 굴러 내려가며 왼쪽 벽 쪽의 관을 눌러 조인다. */
+    var wt = locked ? Y_LOCK : rateYFor(gSel);
+    var dyw = wt-wheelY;
+    wheelY += dyw*Math.min(1,dt*8);
+    var gap = Math.max(0.6, 0.6+0.169*(258-wheelY));
+    var xr = 93.25+gap, gt = Math.min(3.5,gap);
+    wheelEl.setAttribute('transform','translate('+xr.toFixed(2)+','+wheelY.toFixed(2)+') rotate('+(((wheelY-Y_OPEN)/10)*57.2958).toFixed(1)+')');
+    flowEl.setAttribute('d','M83.25 218 H86.75 V'+(wheelY-7).toFixed(1)+' L'+(83.25+gt).toFixed(2)+' '+wheelY.toFixed(1)+' L86.75 '+(wheelY+7).toFixed(1)+' V272 H83.25 Z');
+    dryEl.setAttribute('y',(wheelY+7).toFixed(1)); dryEl.setAttribute('height',Math.max(0,272-wheelY-7).toFixed(1)); dryEl.setAttribute('opacity',((1-gt/3.5)*0.85).toFixed(2));
+    arrEl.setAttribute('transform','translate('+xr.toFixed(2)+','+wheelY.toFixed(2)+') scale('+(dyw>=0?1:-1)+',1)');
+    arrEl.setAttribute('opacity',Math.min(1,Math.abs(dyw)/5).toFixed(2));
+    tubeEnd.setAttribute('opacity', locked ? 0.3 : 1);
+    if(n>lastN && running && viewOn && sndOn && !locked) tick();
+    lastN=n;
+    $('cnt').textContent=n;
+    $('sec').textContent=Math.floor(t);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  var chipEls = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+  function renderView(reset){
+    var vdf=parseFloat($('vdf').value), g=gSel, ml=(customMl!==null)?customMl:g*60/vdf;
+    $('fromCalc').hidden=(customMl===null);
+    locked = (g===0);
+    if(locked){
+      $('v-gtt').innerHTML = '0<small>gtt/min</small>';
+      $('v-mlhr').innerHTML = '0<small>mL/hr</small>';
+      $('o-int').textContent = '-';
+      $('o-ten').textContent = '0';
+      $('speedline').innerHTML = '<b>0 gtt/min</b> · 잠김, 방울이 멈춤';
+    } else {
+      $('v-gtt').innerHTML = fmt(g,0)+'<small>gtt/min</small>';
+      $('v-mlhr').innerHTML = fmt(ml,1)+'<small>mL/hr</small>';
+      $('o-int').textContent = fmt(60/g,1)+'초';
+      $('o-ten').textContent = fmt(g/6,1);
+      $('speedline').innerHTML = '<b>'+fmt(g,0)+' gtt/min</b> · '+fmt(60/g,1)+'초에 1방울';
+    }
+    chipEls.forEach(function(c){ c.setAttribute('aria-pressed', parseFloat(c.getAttribute('data-g'))===g); });
+    if(reset && !locked){ period=60/g; t=0; lastN=0; }
+  }
+  chipEls.forEach(function(c){
+    c.addEventListener('click', function(){ gSel=parseFloat(c.getAttribute('data-g')); customMl=null; renderView(true); });
+  });
+  $('vdf').addEventListener('change', function(){ customMl=null; renderView(false); });
+  renderView(true);
+
+
+  /* ---------- 1-b. 롤러 클램프 확대(원리) 화면 ---------- */
+  (function(){
+    var wrap=$('zoomwrap'), card=wrap.querySelector('.zoomcard'), svg=$('zsvg');
+    var zW=$('zWheel'), zF=$('zFlow'), zG=$('zGrabC'), zL1=$('zL1'), zL2=$('zL2'), zR=$('zRead'), zH=$('zHint');
+    var NS='http://www.w3.org/2000/svg', open=false, dragging=false, raf=0;
+    (function(){var g=$('zTicks');for(var i=0;i<16;i++){var a=i*22.5*Math.PI/180,ln=document.createElementNS(NS,'line');
+      ln.setAttribute('x1',(7.4*Math.sin(a)).toFixed(2));ln.setAttribute('y1',(-7.4*Math.cos(a)).toFixed(2));
+      ln.setAttribute('x2',(10*Math.sin(a)).toFixed(2));ln.setAttribute('y2',(-10*Math.cos(a)).toFixed(2));
+      ln.setAttribute('stroke','var(--wheel-edge)');ln.setAttribute('stroke-width','1.1');g.appendChild(ln);}})();
+    function yToG(y){
+      if(y>=258) return 0;
+      for(var i=rateKnots.length-1;i>=1;i--){
+        var a=rateKnots[i-1], b=rateKnots[i];
+        if(y<=a[1] && y>=b[1]) return a[0]+(b[0]-a[0])*(a[1]-y)/(a[1]-b[1]);
+      }
+      return 120;
+    }
+    function draw(){
+      var gap=Math.max(0.6,0.6+0.169*(258-wheelY)), xr=93.25+gap, gt=Math.min(3.5,gap);
+      zW.setAttribute('transform','translate('+xr.toFixed(2)+','+wheelY.toFixed(2)+') rotate('+(((wheelY-Y_OPEN)/10)*57.2958).toFixed(1)+')');
+      zF.setAttribute('d','M83.25 218 H86.75 V'+(wheelY-7).toFixed(1)+' L'+(83.25+gt).toFixed(2)+' '+wheelY.toFixed(1)+' L86.75 '+(wheelY+7).toFixed(1)+' V272 H83.25 Z');
+      zG.setAttribute('cx',xr.toFixed(2)); zG.setAttribute('cy',wheelY.toFixed(2));
+      zL1.setAttribute('x2',(xr+7).toFixed(1)); zL1.setAttribute('y2',(wheelY-6).toFixed(1));
+      zL2.setAttribute('x2',(83.25+gt/2+1).toFixed(1)); zL2.setAttribute('y2',wheelY.toFixed(1));
+      zH.setAttribute('transform','translate(0,'+(wheelY-248+0).toFixed(1)+')');
+    }
+    function readout(){
+      zR.innerHTML = locked ? '<b>0 gtt/min</b> · 완전히 잠김, 방울이 멈춤' : '<b>'+fmt(gSel,0)+' gtt/min</b> · '+fmt(60/gSel,1)+'초에 1방울';
+    }
+    function loop(){ if(!open) return; draw(); raf=requestAnimationFrame(loop); }
+    function openZ(){
+      if(open) return;
+      var r=$('clamp').getBoundingClientRect();
+      var cx=r.left+r.width/2, cy=r.top+r.height/2;
+      wrap.classList.add('on'); wrap.setAttribute('aria-hidden','false'); open=true;
+      var cr=card.getBoundingClientRect();
+      card.style.setProperty('--zx',Math.max(0,Math.min(100,(cx-cr.left)/cr.width*100))+'%');
+      card.style.setProperty('--zy',Math.max(0,Math.min(100,(cy-cr.top)/cr.height*100))+'%');
+      readout(); loop();
+    }
+    function closeZ(){
+      if(!open) return;
+      open=false; dragging=false; wrap.classList.remove('on'); wrap.setAttribute('aria-hidden','true'); cancelAnimationFrame(raf);
+    }
+    $('clamp').addEventListener('click',openZ);
+    $('clamp').addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openZ(); }});
+    $('zoomBack').addEventListener('click',closeZ);
+    wrap.addEventListener('click',function(e){ if(e.target===wrap) closeZ(); });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeZ(); });
+    function svgY(e){
+      var pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
+      return pt.matrixTransform(svg.getScreenCTM().inverse()).y;
+    }
+    function setFromY(y){
+      y=Math.max(Y_OPEN,Math.min(Y_LOCK,y));
+      var g=Math.round(yToG(y));
+      if(y>=257) g=0;
+      if(g!==gSel){ gSel=g; customMl=null; renderView(true); readout(); }
+    }
+    svg.addEventListener('pointerdown',function(e){
+      var y=svgY(e), pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
+      var p=pt.matrixTransform(svg.getScreenCTM().inverse());
+      var gap=Math.max(0.6,0.6+0.169*(258-wheelY)), xr=93.25+gap;
+      if(Math.hypot(p.x-xr,p.y-wheelY)>16 && Math.abs(p.x-xr)>22) return;
+      dragging=true; try{svg.setPointerCapture(e.pointerId);}catch(_){}
+      zH.setAttribute('opacity',0); setFromY(y); e.preventDefault();
+    });
+    svg.addEventListener('pointermove',function(e){ if(dragging){ setFromY(svgY(e)); e.preventDefault(); } });
+    function end(e){ dragging=false; }
+    svg.addEventListener('pointerup',end); svg.addEventListener('pointercancel',end);
+  })();
+  /* ---------- 2. 계산 (단계별 풀이) ---------- */
+  var cur=null, gVal=[], gMsg=[], gHint=[], gTry=[], gDone=[], gRev=[];
+  function tp(c){
+    if(c.h>0&&c.m>0) return fmt(c.h,2)+'시간 '+fmt(c.m,2)+'분';
+    if(c.h>0) return fmt(c.h,2)+'시간';
+    return fmt(c.m,2)+'분';
+  }
+  function readCalc(){
+    var V=parseFloat($('vol').value), h=parseFloat($('hr').value)||0, m=parseFloat($('min').value)||0, df=parseFloat($('df').value);
+    var T=h*60+m;
+    if(!(V>0)||!(T>0)) return null;
+    return {V:V,h:h,m:m,df:df,T:T,hr:T/60,mlhr:V/(T/60),gHr:V/(T/60)*df,raw:V*df/T,gtt:Math.round(V*df/T),sec:60/(Math.round(V*df/T)>0?Math.round(V*df/T):V*df/T)};
+  }
+  function defs(c){
+    return [
+      {q:'수액 <b>'+fmt(c.V,2)+' mL</b>를 <b>'+tp(c)+'</b> 동안 일정하게 주입합니다. <b>1시간</b>에 몇 mL씩 들어갈까요?', unit:'mL/hr', ans:c.mlhr, tol:0.06,
+       hint:'총량(mL) ÷ 시간(hr). 분이 섞여 있으면 시간으로 바꿔서 나눕니다.',
+       sol:fmt(c.V,2)+' mL ÷ '+fmt(c.hr,2)+'시간 = '+fmt(c.mlhr,1)+' mL/hr',
+       wrong:function(u){ return Math.abs(u-c.V/c.T)<=0.06 ? '분으로 나눴어요. 1시간당이니 시간(hr)으로 나눕니다.' : null; }},
+      {q:'<b>1시간</b>에 '+fmt(c.mlhr,1)+' mL가 들어갑니다. 점적계수는 <b>1 mL = '+c.df+'방울</b>입니다. 1시간에 몇 <b>방울</b>일까요?', unit:'gtt/hr', ans:c.gHr, tol:0.06*c.df+0.01,
+       hint:'1시간 동안 들어가는 mL × 1 mL당 방울 수',
+       sol:fmt(c.mlhr,1)+' × '+c.df+' = '+fmt(c.gHr,0)+' gtt/hr',
+       wrong:function(u){
+         if(Math.abs(u-c.mlhr)<=0.06) return 'mL 그대로예요. 1 mL가 '+c.df+'방울이니 '+c.df+'을 곱합니다.';
+         if(Math.abs(u-c.df)<0.01) return '점적계수만 썼어요. 1시간 주입량에 곱해야 합니다.';
+         return null; }},
+      {q:'1시간에 <b>'+fmt(c.gHr,0)+'방울</b>입니다. <b>1분</b>에 몇 방울일까요? (소수점 첫째 자리에서 반올림)', unit:'gtt/min', ans:c.raw, tol:0.5,
+       hint:'1시간은 60분입니다. 1시간의 방울 수를 60으로 나눕니다.',
+       sol:fmt(c.gHr,0)+' ÷ 60 = '+fmt(c.raw,1)+' → '+fmt(c.gtt,0)+' gtt/min',
+       wrong:function(u){ return Math.abs(u-c.gHr)<=0.5 ? '1시간 값 그대로예요. 1분당이니 60으로 나눕니다.' : null; }},
+      {q:'1분(60초)에 <b>'+fmt(c.gtt,0)+'방울</b>이 떨어집니다. 그러면 <b>몇 초에 한 방울</b>씩 떨어질까요? (소수점 첫째 자리까지)', unit:'초/방울', ans:c.sec, tol:0.06,
+       hint:'60초를 1분간 방울 수로 나눕니다.',
+       sol:'60 ÷ '+fmt(c.gtt,0)+' = '+fmt(c.sec,1)+'초에 1방울',
+       wrong:function(u){ return Math.abs(u-c.gtt/60)<=0.06 ? '거꾸로 나눴어요. 60(초)을 방울 수로 나눕니다.' : null; }}
+    ];
+  }
+  function activeIdx(){ for(var i=0;i<4;i++){ if(!gDone[i]) return i; } return 4; }
+  function logEvent(t){ try{ if(window.__log) window.__log(t); }catch(e){} }
+  function showResult(){
+    if(cur && !cur.logged){ cur.logged=true; logEvent('calc'); }
+    var c=cur;
+    $('c-mlhr').innerHTML=fmt(c.mlhr,1)+'<small>mL/hr</small>';
+    $('c-gtt').innerHTML=fmt(c.gtt,0)+'<small>gtt/min</small>';
+    $('unitline').innerHTML=fmt(c.mlhr,1)+' <s>mL</s>/<s>hr</s> × '+c.df+' gtt/<s>mL</s> ÷ 60 min/<s>hr</s> = '+fmt(c.raw,1)+' gtt/min';
+    $('secline').innerHTML='→ 약 <b>'+fmt(c.sec,1)+'초에 1방울</b>씩 떨어집니다.';
+    $('resultCard').hidden=false;
+  }
+  function renderSteps(focus){
+    if(!cur) return;
+    var D=defs(cur), a=activeIdx(), h='';
+    for(var i=0;i<4;i++){
+      var st = gDone[i] ? 'done' : (i===a ? 'active' : 'locked');
+      h+='<li class="gstep" data-s="'+st+'"><span class="num">'+(gDone[i]?'✓':(i+1))+'</span><div><p class="gq">'+D[i].q+'</p>';
+      if(st==='done'){
+        h+='<p class="gsol">'+D[i].sol+(gRev[i]?' (정답 보기)':'')+'</p>';
+      } else if(st==='active'){
+        h+='<form class="grow" data-i="'+i+'" autocomplete="off"><div class="inp"><input type="number" inputmode="decimal" min="0" step="any" id="gi'+i+'" value="'+gVal[i]+'" aria-label="'+(i+1)+'단계 답"><span class="unit">'+D[i].unit+'</span></div><button class="btn" type="submit">확인</button></form>';
+        var fb='';
+        if(gMsg[i]) fb+='<div class="hint">'+gMsg[i]+'</div>';
+        if(gHint[i]) fb+='<div class="hint">힌트: '+D[i].hint+'</div>';
+        if(fb) h+='<div class="gfb">'+fb+'</div>';
+        h+='<div class="gbtns">';
+        if(!gHint[i]) h+='<button type="button" class="linkbtn" data-act="hint" data-i="'+i+'">힌트 보기</button>';
+        if(gTry[i]>=2) h+='<button type="button" class="linkbtn" data-act="show" data-i="'+i+'">정답 보기</button>';
+        h+='</div>';
+      } else {
+        h+='<p class="note" style="margin:0">앞 단계를 먼저 풀어 보세요.</p>';
+      }
+      h+='</div></li>';
+    }
+    $('gsteps').innerHTML=h;
+    if(a<4 && focus){ var el=$('gi'+a); if(el) el.focus({preventScroll:true}); }
+    if(a===4) showResult();
+  }
+  function resetSteps(){
+    cur=readCalc();
+    gVal=['','','','']; gMsg=[null,null,null,null]; gHint=[false,false,false,false]; gTry=[0,0,0,0]; gDone=[false,false,false,false]; gRev=[false,false,false,false];
+    $('resultCard').hidden=true;
+    if(!cur){
+      $('err').hidden=false; $('err').textContent='총량과 시간을 0보다 크게 입력하세요.';
+      $('gsteps').innerHTML=''; $('story').innerHTML='';
+      return;
+    }
+    $('err').hidden=true;
+    $('story').innerHTML='수액 <b>'+fmt(cur.V,2)+' mL</b>를 <b>'+tp(cur)+'</b> 동안 주입합니다. 수액세트의 점적계수는 <b>'+cur.df+' gtt/mL</b>입니다.';
+    renderSteps(false);
+    if(typeof scRender==='function'&&$('scBox')) scRender();
+  }
+  $('gsteps').addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!cur) return;
+    var i=parseInt(e.target.getAttribute('data-i'),10), D=defs(cur)[i];
+    var raw=$('gi'+i).value; gVal[i]=raw;
+    if(raw===''){ gMsg[i]='숫자를 입력하세요.'; renderSteps(true); return; }
+    var u=parseFloat(raw);
+    if(Math.abs(u-D.ans)<=D.tol+1e-9){ gDone[i]=true; gMsg[i]=null; renderSteps(true); return; }
+    gTry[i]++;
+    gMsg[i]=D.wrong(u)||'값이 달라요. 다시 계산해 보세요.';
+    renderSteps(true);
+  });
+  $('gsteps').addEventListener('click', function(e){
+    var b=e.target.closest('button[data-act]');
+    if(!b) return;
+    var i=parseInt(b.getAttribute('data-i'),10), el=$('gi'+i);
+    if(el) gVal[i]=el.value;
+    if(b.getAttribute('data-act')==='hint'){ gHint[i]=true; renderSteps(false); }
+    else { gDone[i]=true; gRev[i]=true; gMsg[i]=null; renderSteps(true); }
+  });
+  ['vol','hr','min','df'].forEach(function(id){ $(id).addEventListener('input',resetSteps); $(id).addEventListener('change',resetSteps); });
+  $('shuffle').onclick=function(){
+    var V,hh,df=20,raw,k=0;
+    do{ V=pick([250,500,1000]); hh=pick([2,4,5,6,8,10]); raw=V*df/(hh*60); k++; }while((raw<10||raw>120)&&k<100);
+    $('vol').value=V; $('hr').value=hh; $('min').value=0;
+    resetSteps();
+  };
+  $('toView').onclick=function(){
+    if(!cur) return;
+    gSel=cur.gtt; customMl=cur.mlhr;
+    var opt=$('vdf'); opt.value=String(cur.df);
+    show('view'); renderView(true);
+    try{ window.scrollTo(0,0); }catch(e){}
+  };
+  resetSteps();
+
+  /* ---------- 3. 연습문제 ---------- */
+  var answered=false, okN=0, allN=0, streak=0, tries=0, roundN=0, roundDone=false, byType={}, trapCount={};
+  function pick(a){return a[Math.floor(Math.random()*a.length)]}
+  function timeText(min, preferHour){
+    if(preferHour && min%60===0) return (min/60)+'시간';
+    if(min>=60 && min%60!==0) return Math.floor(min/60)+'시간 '+(min%60)+'분';
+    return min+'분';
+  }
+  var makers=[
+    function(){ // mL/hr
+      var V=pick([250,500,1000]), hrs=pick([2,4,5,10]);
+      var ans=V/hrs;
+      return {tag:'mL/hr 구하기', unit:'mL/hr', ans:ans, tol:0.06,
+        text:'수액 <b>'+V+' mL</b>를 <b>'+hrs+'시간</b> 동안 일정한 속도로 주입하려고 합니다. 시간당 주입량은 몇 mL/hr입니까? (소수점 첫째 자리까지)',
+        steps:['시간당 주입량 = 총량 ÷ 시간(hr)', V+' ÷ '+hrs+' = '+fmt(ans,1)+' mL/hr'],
+        traps:[{v:V/(hrs*60), msg:'시간을 분으로 바꿔서 나눴어요. mL/hr는 시간(hr)으로 나눕니다.'}]};
+    },
+    function(){ // gtt/min
+      var V,DF,T,raw,asHour,k=0;
+      do{
+        V=pick([100,250,500,1000]); DF=20; T=pick([30,60,90,120,180,240,360]);
+        raw=V*DF/T; k++;
+      }while((raw<15||raw>120) && k<200);
+      asHour = pick([true,true,false]);
+      var ans=Math.round(raw);
+      return {tag:'gtt/min 구하기', unit:'gtt/min', ans:raw, tol:0.5,
+        text:'수액 <b>'+V+' mL</b>를 <b>'+timeText(T,asHour)+'</b> 동안 주입합니다. 수액세트의 점적계수가 <b>'+DF+' gtt/mL</b>일 때 분당 방울 수는? (소수점 첫째 자리에서 반올림)',
+        steps:['시간을 분으로: '+timeText(T,asHour)+' = '+T+'분', '('+V+' × '+DF+') ÷ '+T+' = '+fmt(raw,1)+' → '+ans+' gtt/min'],
+        traps:[
+          {v:V*DF/(T/60), msg:'시간을 분으로 바꾸지 않고 계산했어요. 분 = 시간 × 60 입니다.'},
+          {v:V/T, msg:'점적계수를 곱하지 않았어요. 총량 × 점적계수를 먼저 구하세요.'}
+        ]};
+    },
+    function(){ // 소요시간
+      var pr=pick([[500,125],[1000,125],[500,100],[1000,100],[500,250],[1000,200],[500,50],[1000,250]]);
+      var ans=pr[0]/pr[1];
+      return {tag:'소요시간 구하기', unit:'시간', ans:ans, tol:0.01,
+        text:'수액 <b>'+pr[0]+' mL</b>를 <b>'+pr[1]+' mL/hr</b>로 주입하도록 처방되었습니다. 이 수액이 모두 들어가는 데 걸리는 시간은 몇 시간입니까?',
+        steps:['소요시간 = 총량 ÷ 시간당 주입량', pr[0]+' ÷ '+pr[1]+' = '+fmt(ans,1)+'시간'],
+        traps:[{v:pr[1]/pr[0], msg:'나누는 순서가 반대예요. 총량(mL)을 시간당 주입량(mL/hr)으로 나눕니다.'}]};
+    },
+    function(){ // mL/hr -> gtt/min
+      var rate,DF,raw,k=0;
+      do{ rate=pick([60,80,90,100,120,150,180,200]); DF=20; raw=rate*DF/60; k++; }while((raw<15||raw>100)&&k<200);
+      var ans=Math.round(raw);
+      var tr=[{v:rate*DF, msg:'÷60(1시간=60분)을 빠뜨렸어요. mL/hr를 분당으로 바꿔야 합니다.'}];
+      return {tag:'mL/hr → gtt/min', unit:'gtt/min', ans:raw, tol:0.5,
+        text:'처방: <b>'+rate+' mL/hr</b>. 수액세트의 점적계수는 <b>'+DF+' gtt/mL</b>입니다. 분당 방울 수는? (소수점 첫째 자리에서 반올림)',
+        steps:['gtt/min = mL/hr × 점적계수 ÷ 60', rate+' × '+DF+' ÷ 60 = '+fmt(raw,1)+' → '+ans+' gtt/min'],
+        traps:tr};
+    }
+  ];
+  var lastKind=-1;
+  function newQ(){
+    var k; do{ k=Math.floor(Math.random()*makers.length); }while(k===lastKind && makers.length>1);
+    lastKind=k;
+    if(roundDone){ roundN=0; roundDone=false; byType={}; trapCount={}; okN=0; allN=0; streak=0; $('s-ok').textContent=0; $('s-all').textContent=0; $('s-st').textContent=0; $('q-next').textContent='다음 문제'; }
+    current=makers[k]();
+    answered=false; tries=0;
+    $('q-tag').textContent=current.tag;
+    $('q-text').innerHTML=current.text;
+    $('q-unit').textContent=current.unit;
+    $('q-ans').value=''; $('q-ans').disabled=false;
+    $('q-check').disabled=false;
+    $('q-fb').innerHTML='';
+    $('q-ans').focus({preventScroll:true});
+  }
+  $('q-next').onclick=newQ;
+  var tips={
+    'mL/hr 구하기':'총량 ÷ 시간(hr)',
+    'gtt/min 구하기':'총량 × 점적계수 ÷ 시간(분). 시간은 먼저 분으로 바꿉니다.',
+    '소요시간 구하기':'총량 ÷ 시간당 주입량',
+    'mL/hr → gtt/min':'mL/hr × 점적계수 ÷ 60 (점적계수 20이면 ÷3)'
+  };
+  function summaryHtml(){
+    var keys=Object.keys(byType), weak=null, wr=2;
+    var rows=keys.map(function(k){
+      var t=byType[k], r=t.ok/t.n;
+      if(r<wr){ wr=r; weak=k; }
+      return '<tr><td>'+k+'</td><td>'+t.ok+' / '+t.n+'</td></tr>';
+    }).join('');
+    var h='<div class="fb sum"><h3>이번 10문제 정리</h3><p style="margin:0">처음 답 기준 <b>'+okN+' / 10</b></p>';
+    h+='<table><tr><th>유형</th><th>처음에 맞힌 수</th></tr>'+rows+'</table>';
+    if(weak && wr<1) h+='<p style="margin:6px 0 0"><b>더 연습할 유형</b> '+weak+' → '+tips[weak]+'</p>';
+    else h+='<p style="margin:6px 0 0">모든 유형을 처음에 맞혔습니다. 숫자를 바꿔 한 번 더 풀어 보세요.</p>';
+    var top=null, tc=0; Object.keys(trapCount).forEach(function(m){ if(trapCount[m]>tc){ tc=trapCount[m]; top=m; } });
+    if(top) h+='<p style="margin:6px 0 0"><b>자주 한 실수</b> '+top+'</p>';
+    h+='<p style="margin:6px 0 0;color:var(--muted);font-size:13px">수업에서 배운 수액 주입 속도 계산 부분을 다시 살펴보세요.</p></div>';
+    return h;
+  }
+  $('q-form').addEventListener('submit',function(e){
+    e.preventDefault();
+    if(answered) return;
+    var raw=$('q-ans').value;
+    if(raw===''){ $('q-fb').innerHTML='<div class="fb no"><h3>답을 입력하세요.</h3></div>'; return; }
+    var u=parseFloat(raw);
+    var ok=Math.abs(u-current.ans)<=current.tol+1e-9;
+    logEvent('practice');
+    var tr=ok?null:current.traps.filter(function(x){return Math.abs(u-x.v)<=Math.max(current.tol,0.5)+1e-9;})[0];
+    if(!ok && tries===0){
+      tries=1;
+      if(tr) trapCount[tr.msg]=(trapCount[tr.msg]||0)+1;
+      $('q-fb').innerHTML='<div class="fb no"><h3>다시 확인해 봅시다.</h3>'+(tr?'<div class="hint"><b>혼동한 지점</b> '+tr.msg+'</div>':'<div class="hint"><b>힌트</b> '+current.steps[0]+'</div>')+'<p style="margin:8px 0 0">답을 고쳐서 한 번 더 확인해 보세요.</p></div>';
+      $('q-ans').focus({preventScroll:true}); try{ $('q-ans').select(); }catch(x){}
+      return;
+    }
+    var first=(ok&&tries===0);
+    answered=true; allN++; roundN++;
+    var bt=byType[current.tag]||(byType[current.tag]={n:0,ok:0}); bt.n++; if(first) bt.ok++;
+    if(first){okN++;streak++;} else {streak=0;}
+    $('s-ok').textContent=okN; $('s-all').textContent=allN; $('s-st').textContent=streak;
+    $('q-ans').disabled=true; $('q-check').disabled=true;
+    var html='<div class="fb '+(ok?'ok':'no')+'"><h3>'+(ok?(first?'정답입니다.':'정답입니다. 한 번 더 풀어서 맞혔어요.'):'정답을 알려 드릴게요.')+'</h3>';
+    if(!ok){
+      if(tr) html+='<div class="hint"><b>혼동한 지점</b> '+tr.msg+'</div>';
+      html+='<p style="margin:8px 0 0">정답: <b>'+(current.unit==='gtt/min'?fmt(Math.round(current.ans),0):fmt(current.ans,1))+' '+current.unit+'</b></p>';
+    }
+    html+='<ol>'+current.steps.map(function(s){return '<li>'+s+'</li>'}).join('')+'</ol></div>';
+    if(roundN>=10){ html+=summaryHtml(); roundDone=true; $('q-next').textContent='새 연습 시작'; }
+    $('q-fb').innerHTML=html;
+  });
+  $('fb-send').onclick=function(){
+    var text=$('fb-text').value.trim();
+    if(!text){ $('fb-msg').textContent='평가 내용을 입력하세요.'; return; }
+    if(!window.__sendFeedback){ $('fb-msg').textContent='지금은 보낼 수 없습니다.'; return; }
+    $('fb-send').disabled=true; $('fb-msg').textContent='보내는 중…';
+    window.__sendFeedback($('fb-cat').value,text).then(function(r){
+      $('fb-send').disabled=false;
+      if(r&&r.ok){ $('fb-text').value=''; $('fb-msg').textContent='전달되었습니다. 고맙습니다.'; }
+      else { $('fb-msg').textContent=(r&&r.msg)||'보내지 못했습니다. 잠시 뒤 다시 시도하세요.'; }
+    }).catch(function(){ $('fb-send').disabled=false; $('fb-msg').textContent='보내지 못했습니다. 연결을 확인하세요.'; });
+  };
+
+  /* ---------- 계산기 ---------- */
+  var cx='';
+  function cEval(str){
+    var t=str.match(/\d+\.?\d*|\.\d+|[+\-×÷]/g)||[], pos=0;
+    if(t.join('')!==str) return NaN;
+    function num(){ var neg=false; if(t[pos]==='-'){neg=true;pos++;} var v=parseFloat(t[pos++]); return neg?-v:v; }
+    function term(){ var v=num(); while(t[pos]==='×'||t[pos]==='÷'){ var o=t[pos++], r=num(); v=(o==='×')?v*r:v/r; } return v; }
+    var v=term(); while(t[pos]==='+'||t[pos]==='-'){ var o=t[pos++], r=term(); v=(o==='+')?v+r:v-r; }
+    return (pos===t.length && isFinite(v))?v:NaN;
+  }
+  function cFmt(v){ return String(Math.round(v*1e6)/1e6); }
+  function cRender(){
+    $('cexp').textContent=cx.replace(/-/g,'−');
+    var v=cx?cEval(cx):NaN;
+    $('cres').textContent=isNaN(v)?(cx?'…':'0'):cFmt(v);
+  }
+  var keyDefs=['C','⌫','÷','×','7','8','9','-','4','5','6','+','1','2','3','=','0','.','PUT'];
+  $('ckeys').innerHTML=keyDefs.map(function(k){
+    var cls=('÷×-+'.indexOf(k)>=0)?'op':(k==='='?'eq':(k==='PUT'?'put':''));
+    return '<button type="button" class="'+cls+'" data-k="'+k+'">'+(k==='PUT'?'답 칸에 넣기':(k==='-'?'−':k))+'</button>';
+  }).join('');
+  function cTarget(){
+    if(!$('p-quiz').hidden) return $('q-ans');
+    if(!$('p-calc').hidden){ var f=$('gsteps').querySelector('form input'); return f; }
+    return null;
+  }
+  $('ckeys').addEventListener('click', function(e){
+    var b=e.target.closest('button[data-k]'); if(!b) return;
+    var k=b.getAttribute('data-k'), last=cx.slice(-1);
+    if(k==='C') cx='';
+    else if(k==='⌫') cx=cx.slice(0,-1);
+    else if(k==='='){ var v=cEval(cx); if(!isNaN(v)) cx=cFmt(v); }
+    else if(k==='PUT'){
+      var v2=cEval(cx), el=cTarget();
+      if(!isNaN(v2) && el){ el.value=cFmt(v2); el.dispatchEvent(new Event('input',{bubbles:true})); }
+      return;
+    }
+    else if('÷×+-'.indexOf(k)>=0){
+      if(cx===''&&k!=='-') return;
+      if('÷×+-'.indexOf(last)>=0&&last!==''){ if(cx.length===1) return; cx=cx.slice(0,-1); }
+      cx+=k;
+    } else if(k==='.'){
+      var seg=cx.split(/[+\-×÷]/).pop(); if(seg.indexOf('.')>=0) return; cx+=(seg===''?'0.':'.');
+    } else { cx+=k; }
+    cRender();
+  });
+  function calcOpen(on){ if(!on||$('calc').hidden){ cx=''; cRender(); } $('calc').hidden=!on; document.body.classList.toggle('calc-open',on); $('fab').hidden=on||(!!$('p-view')&&!$('p-view').hidden); }
+  $('fab').onclick=function(){ calcOpen(true); };
+  $('cclose').onclick=function(){ calcOpen(false); };
+  function syncCalcUi(name){ cx=''; cRender(); $('calc').hidden=true; document.body.classList.remove('calc-open'); $('fab').hidden=(name==='view'); }
+  syncCalcUi('view');
+
+  /* ---------- 빠른 계산법 ---------- */
+  function scRender(){
+    var ex=cur?cur.mlhr:120, exRaw=ex/3;
+    var h='<div class="big">gtt/min = mL/hr × 20 ÷ 60</div>';
+    h+='<div class="big">= mL/hr × 20/60 = mL/hr × 1/3</div>';
+    h+='<div class="big" style="color:var(--accent)">gtt/min = mL/hr ÷ 3</div>';
+    h+='<p class="why">1 mL가 20방울이고 1시간이 60분입니다. 20/60을 약분하면 1/3이므로, 시간당 mL 수를 3으로 나누면 분당 방울 수가 됩니다.</p>';
+    h+='<p class="why" style="color:var(--ink)"><b>거꾸로</b>: mL/hr = gtt/min × 3</p>';
+    h+='<p class="why" style="color:var(--ink)"><b>예</b>: '+fmt(ex,1)+' mL/hr → '+fmt(ex,1)+' ÷ 3 = '+fmt(exRaw,1)+' → <b>'+fmt(Math.round(exRaw),0)+' gtt/min</b></p>';
+    h+='<p class="why">60 mL/hr → 20 gtt/min · 90 mL/hr → 30 gtt/min · 120 mL/hr → 40 gtt/min · 150 mL/hr → 50 gtt/min</p>';
+    $('scBox').innerHTML=h;
+  }
+  scRender();
+})();
+</script>
+<script>
+(function(){
+  /* 설치 후 이 주소를 Apps Script 웹 앱 URL로 바꾸세요 */
+  var API='https://script.google.com/macros/s/AKfycbziEXd0c7rwWscNMMtjomC4QZOWBrtEkRdekEzl36aHbOhpA2akVUPZISxEwIjodeNC/exec';
+  var sid='', code='', $=function(i){return document.getElementById(i);};
+  var gate=$('gate');
+  function post(body){
+    return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(function(r){return r.json();});
+  }
+  function unlock(){ gate.hidden=true; document.body.classList.remove('locked'); var fc=$('fbCard'); if(fc) fc.hidden=false; }
+  function lock(msg){ gate.hidden=false; document.body.classList.add('locked'); $('g-msg').textContent=msg||''; }
+  function storedCode(){ try{ return localStorage.getItem('ivcode')||''; }catch(e){ return ''; } }
+  function remember(){ try{ sessionStorage.setItem('ivs',JSON.stringify({s:sid,c:code})); localStorage.setItem('ivsid',sid); }catch(e){} }
+  $('gform').addEventListener('submit',function(e){
+    e.preventDefault();
+    sid=$('g-sid').value.trim(); code=$('g-code').value.trim()||storedCode();
+    if(!sid){ $('g-msg').textContent='학번을 입력하세요.'; return; }
+    $('g-go').disabled=true; $('g-msg').textContent='확인 중…';
+    post({a:'login',sid:sid,code:code}).then(function(r){
+      $('g-go').disabled=false;
+      if(r&&r.ok){ remember(); try{ if(code) localStorage.setItem('ivcode',code); }catch(e){} $('g-code').value=''; unlock(); }
+      else {
+        if(r&&r.need==='code'){ try{ localStorage.removeItem('ivcode'); }catch(e){} $('g-coderow').hidden=false; $('g-code').focus(); }
+        sid=''; code=''; $('g-msg').textContent=(r&&r.msg)||'확인하지 못했습니다.';
+      }
+    }).catch(function(){ $('g-go').disabled=false; sid=''; code=''; $('g-msg').textContent='연결을 확인한 뒤 다시 시도하세요.'; });
+  });
+  window.__log=function(t,n){
+    if(!sid) return;
+    n=n||0;
+    post({a:t,sid:sid,code:code}).then(function(r){ if(!(r&&r.ok) && n<2) throw 0; }).catch(function(){ if(n<2) setTimeout(function(){ window.__log(t,n+1); }, 2500*(n+1)); });
+  };
+  window.__sendFeedback=function(cat,text){
+    if(!sid) return Promise.reject();
+    return post({a:'feedback',sid:sid,code:code,cat:cat,text:text});
+  };
+  /* 시작: 같은 탭에서 새로고침하면 다시 입력하지 않음(접속 횟수에는 추가하지 않음) */
+  var saved=null; try{ saved=JSON.parse(sessionStorage.getItem('ivs')||'null'); $('g-sid').value=localStorage.getItem('ivsid')||''; }catch(e){}
+  lock('');
+  if(saved&&saved.s&&saved.c){
+    post({a:'check',sid:saved.s,code:saved.c}).then(function(r){ if(r&&r.ok){ sid=saved.s; code=saved.c; unlock(); } }).catch(function(){});
+  }
+})();
+</script>
+</body>
+</html>
